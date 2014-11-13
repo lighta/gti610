@@ -175,7 +175,9 @@ public class UDPReceiver extends Thread {
 						// dans le fichier de correspondance de ce serveur					
 						String domaineToSearch = question.getFlatQname();
 						System.out.println("domaineToSearch="+domaineToSearch);
+						ArrayList<String> listAdrfound = new ArrayList<>();
 						String ipFound = qf.StartResearch(domaineToSearch);
+						
 						// *Si la correspondance n'est pas trouvee
 						if(ipFound.equalsIgnoreCase("none"))
 						{
@@ -188,10 +190,11 @@ public class UDPReceiver extends Thread {
 							// *Sinon	
 							// *Creer le paquet de reponse a l'aide du
 							// UDPAnswerPaquetCreator
+							listAdrfound.add(ipFound);
 							System.out.println("Adresse found replying to ip="+cl.client_ip+" port="+cl.client_port);
 							UDPAnswerPacketCreator answer = new UDPAnswerPacketCreator();
 							// *Placer ce paquet dans le socket
-							byte[] awnserbyte  = answer.CreateAnswerPacket(buff,ipFound);
+							byte[] awnserbyte  = answer.CreateAnswerPacket(buff,listAdrfound);
 							DatagramPacket pktreply = new DatagramPacket(awnserbyte,awnserbyte.length);
 							// *Envoyer le paquet
 							UDPSender UDPOut = new UDPSender(cl.client_ip,cl.client_port,serveur);
@@ -227,7 +230,7 @@ public class UDPReceiver extends Thread {
 //							continue; //prendre la prochaine reponse				
 //						reponse.setNAME(data);
 						reponse.setNAME(message.getQuestion().getQNAME());
-						input.readChar();
+						input.readChar(); //lecture du name
 						
 						// *Passe par dessus Type et Class
 						reponse.setTYPE(input.readChar());
@@ -255,7 +258,8 @@ public class UDPReceiver extends Thread {
 						System.out.println("RDLenght="+(int)reponse.getRDLENGTH());
 					} //finish reading packet
 					
-						
+					ArrayList<String> listAdrfound = new ArrayList<>();
+					//recherche et enregistrement des IP trouver
 					for(i = 0; i<header.getANCOUNT();i++){
 						ReponseDNS reponse = message.getReponse().get(i);
 						// *Ajouter la ou les correspondance(s) dans le fichier DNS
@@ -267,22 +271,22 @@ public class UDPReceiver extends Thread {
 						String ipRDATA = reponse.getFlatIP();
 						if(ipRDATA == null)
 							continue;
-						
 						if(tmpip.compareToIgnoreCase(ipRDATA) != 0 ) //ajout seulement si le match host+ip non present
 							anRecorder.StartRecord(domaineToSearch, ipRDATA);
+						listAdrfound.add(ipRDATA);
 						
-						// *Faire parvenir le paquet reponse au demandeur original,
-						// ayant emis une requete
-						// *avec cet identifiant
-						UDPAnswerPacketCreator answer = new UDPAnswerPacketCreator();
-						// *Placer ce paquet dans le socket
-						byte[] awnserbyte  = answer.CreateAnswerPacket(buff,ipRDATA);
-						DatagramPacket pktreply = new DatagramPacket(awnserbyte,awnserbyte.length);
-						
-						// *Envoyer le paquet
-						UDPSender UDPOut = new UDPSender(cl.client_ip,cl.client_port,serveur);
-						UDPOut.SendPacketNow(pktreply);
 					}// end for ANCOUNT
+					// *Faire parvenir le paquet reponse au demandeur original,
+					// ayant emis une requete
+					// *avec cet identifiant
+					UDPAnswerPacketCreator answer = new UDPAnswerPacketCreator();
+					// *Placer ce paquet dans le socket
+					byte[] awnserbyte  = answer.CreateAnswerPacket(buff,listAdrfound);
+					DatagramPacket pktreply = new DatagramPacket(awnserbyte,awnserbyte.length);
+					
+					// *Envoyer le paquet
+					UDPSender UDPOut = new UDPSender(cl.client_ip,cl.client_port,serveur);
+					UDPOut.SendPacketNow(pktreply);
 				}// end else isReponse
 			}// end while server
 			
