@@ -13,17 +13,20 @@ import java.net.UnknownHostException;
 	
 	private String dest_ip = null; //ip de reception
 	private int dest_port = 53;  // port de reception
-	private DatagramSocket SendSocket = null;
-	private InetAddress addr = null;
+	private DatagramSocket SendSocket = null; //socket d'envoi
+	private InetAddress addr = null; //adresse de reception (format inet)
 	
 	/**
 	 * Contructor
 	 * @param destip = adresse ip a envoyer le paquet
 	 * @param destport = port a envoyer le paquet
 	 */
-	public UDPSender(String destip, int destport){
+	public UDPSender(String destip, int destport, DatagramSocket sendsocket){
 		try {
-			SendSocket = new DatagramSocket();
+			if(sendsocket == null) SendSocket = new DatagramSocket();
+			else SendSocket = sendsocket;
+			System.out.println("Construction d'un socket d'envoi sur port="+SendSocket.getLocalPort());
+	
 			this.dest_port = destport;
 			this.dest_ip = destip;
 			//cree l'adresse de destination
@@ -37,9 +40,12 @@ import java.net.UnknownHostException;
 	}
 	
 	
-	public UDPSender(InetAddress address, int port) {
+	public UDPSender(InetAddress address, int port, DatagramSocket sendsocket) {
 		try {
-			SendSocket = new DatagramSocket();
+			if(sendsocket == null) SendSocket = new DatagramSocket();
+			else SendSocket = sendsocket;
+			System.out.println("Construction d'un socket d'envoi sur port="+SendSocket.getLocalPort());
+
 			this.dest_port = port;
 			this.addr = address;
 			dest_ip = address.getHostAddress();
@@ -73,8 +79,8 @@ import java.net.UnknownHostException;
 			packet.setAddress(addr);
 			packet.setPort(dest_port);
 			//Envoi le packet
+			System.out.println("Sending packet to adr="+dest_ip+" port="+dest_port+ "srcport="+SendSocket.getLocalPort());
 			SendSocket.send(packet);
-
 		} catch (Exception e) {
 			System.err.println("Probl�me � l'ex�cution :");
 			e.printStackTrace(System.err);

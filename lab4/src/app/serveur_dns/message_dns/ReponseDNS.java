@@ -58,4 +58,23 @@ public class ReponseDNS {
 		tmp += NAME.get(i); //rajout du dernier element sans point
 		return tmp;
 	}
+	
+	public String getFlatIP(){
+		if(RDATA.length==0)
+			return null;
+		int j;
+		
+		String ipRDATA = "";
+		for(j=0;j<this.RDLENGTH-1;++j){
+			int tmp;
+			if( (RDATA[j]&(0x80))==(0x80) )
+				tmp=(RDATA[j]&(0x7F))+128;
+			else
+				tmp=RDATA[j];
+			ipRDATA += tmp + "."; 
+		}
+		ipRDATA += RDATA[j]; //last one doesn't have a dot
+		System.out.println("getFlatIP IP read = "+ipRDATA);
+		return ipRDATA;
+	}
 }

@@ -3,7 +3,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 /***
- * Cette classe est utilisé pour enregistrer une réponse
+ * Cette classe est utilisï¿½ pour enregistrer une rï¿½ponse
  * dans le fichier texte en provenance d'un Server DNS autre.
  * @author Max
  *
@@ -39,9 +39,13 @@ public class AnswerRecorder {
 	 * @param adresseIP
 	 */
 	public void StartRecord(String hostname,String adresseIP){
-
+		if(adresseIP.length() < 7) {
+			System.out.println("Invalid adresseIP to write ("+adresseIP+")");
+			return; //@TODO add proper regex	
+		}
 		try {
 			FileWriter writerFichierSource = new FileWriter(filename,true);
+			
 			writerFichierSource.write(hostname + " " + adresseIP);
 			writerFichierSource.write("\r\n");
 			writerFichierSource.close();
