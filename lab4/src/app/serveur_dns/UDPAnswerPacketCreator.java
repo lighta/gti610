@@ -102,31 +102,31 @@ public class UDPAnswerPacketCreator {
 		
 		
 		//Champ reponse
-		for(int i=0; i<ancount; i++){
+		int i, lenanswer=21;
+		for(i=0; i<ancount; i++){
 			//name offset !TODO whaaaat ?
-			Querypacket[index + 5] = (byte) (0xC0); //name  & 0xFF00
-			Querypacket[index + 6] = (byte) (0x0C); //name  & 0x00FF
+			Querypacket[i*lenanswer + index + 5] = (byte) (0xC0); //name  & 0xFF00
+			Querypacket[i*lenanswer + index + 6] = (byte) (0x0C); //name  & 0x00FF
 			
-			Querypacket[index + 7] = (byte) (0x00); //type  & 0xFF00
-			Querypacket[index + 8] = (byte) 0x01;	//type  & 0x00FF
+			Querypacket[i*lenanswer + index + 7] = (byte) (0x00); //type  & 0xFF00
+			Querypacket[i*lenanswer + index + 8] = (byte) 0x01;	//type  & 0x00FF
 			
 			
-			Querypacket[index + 9] = (byte) 0x00; //class  & 0xFF00
-			Querypacket[index + 10] = (byte) 0x01; //class & 0x00FF
+			Querypacket[i*lenanswer + index + 9] = (byte) 0x00; //class  & 0xFF00
+			Querypacket[i*lenanswer + index + 10] = (byte) 0x01; //class & 0x00FF
 			
 			//TTL
-			Querypacket[index + 11] = (byte) 0x00;
-			Querypacket[index + 12] = (byte) 0x01;
-			Querypacket[index + 13] = (byte)0x1a;
-			Querypacket[index + 14] = (byte) (0x6c);
+			Querypacket[i*lenanswer + index + 11] = (byte) 0x00;
+			Querypacket[i*lenanswer + index + 12] = (byte) 0x01;
+			Querypacket[i*lenanswer + index + 13] = (byte)0x1a;
+			Querypacket[i*lenanswer + index + 14] = (byte) (0x6c);
 			
 			
 			//Grace a l'index de possion, nous somme en mesure
 			//de faire l'injection de l'adresse IP dans le packet
 			//et ce � la bonne endroit
-			Querypacket[index + 15] = (byte) (0x00); //RDLENGHT & 0xFF00
-			Querypacket[index + 16] = 0x04;//taille RDLENGHT 0x00FF
-			
+			Querypacket[i*lenanswer + index + 15] = (byte) (0x00); //RDLENGHT & 0xFF00
+			Querypacket[i*lenanswer + index + 16] = 0x04;//taille RDLENGHT 0x00FF
 			
 			//Conversion de l'adresse IP de String en byte
 			String adrr = listadrr.get(i);
@@ -142,17 +142,17 @@ public class UDPAnswerPacketCreator {
 			part4 = (byte)(Integer.parseInt(adr[3]) & 0xff);
 			
 			//IP RDATA
-			Querypacket[index + 17] = (byte) (part1 & 0xff);
-			Querypacket[index + 18] = (byte) (part2 & 0xff);
-			Querypacket[index + 19] = (byte) (part3 & 0xff);
-			Querypacket[index + 20] = (byte) (part4 & 0xff);
+			Querypacket[i*lenanswer + index + 17] = (byte) (part1 & 0xff);
+			Querypacket[i*lenanswer + index + 18] = (byte) (part2 & 0xff);
+			Querypacket[i*lenanswer + index + 19] = (byte) (part3 & 0xff);
+			Querypacket[i*lenanswer + index + 20] = (byte) (part4 & 0xff);
 		}
 		
-//		longueur = index + 20 + 1; 
-//		Answerpacket = new byte[this.longueur];
-//		for(int i = 0; i < Answerpacket.length; i++){ //remply le reste de merde
-//			Answerpacket[i] = Querypacket[i];
-//		}
+		longueur = (i+1)*lenanswer + index; 
+		Answerpacket = new byte[this.longueur];
+		for(i = 0; i < Answerpacket.length; i++){ //remply le reste de merde
+			Answerpacket[i] = Querypacket[i];
+		}
 		
 		//System.out.println("Identifiant: 0x" + Integer.toHexString(Answerpacket[0] & 0xff) + Integer.toHexString(Answerpacket[1] & 0xff));
 		//System.out.println("parametre: 0x" + Integer.toHexString(Answerpacket[2] & 0xff) + Integer.toHexString(Answerpacket[3] & 0xff));
