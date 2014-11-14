@@ -57,7 +57,7 @@ public class UDPAnswerPacketCreator {
 		Querypacket[4] = (byte) 0x00; //Qcount & 0xFF00
 		Querypacket[5] = (byte) 0x01; //Qcount & 0x00FF
 		
-		Querypacket[6] = ((byte) ((ancount&(0xFF00)>>8) )); //Ancount & 0xFF00
+		Querypacket[6] = ((byte) ((ancount&(0xFF00)) >>8) ); //Ancount & 0xFF00
 		Querypacket[7] = (byte) ((ancount&(0x00FF)) ); //Ancount & 0x00FF
 		
 		//Serveur authority --> 0 il n'y a pas de serveur d'autorit�
@@ -102,31 +102,32 @@ public class UDPAnswerPacketCreator {
 		
 		
 		//Champ reponse
-		int i, lenanswer=21;
+		int i, lenanswer=16;
+		int j=index + 5;
 		for(i=0; i<ancount; i++){
 			//name offset !TODO whaaaat ?
-			Querypacket[i*lenanswer + index + 5] = (byte) (0xC0); //name  & 0xFF00
-			Querypacket[i*lenanswer + index + 6] = (byte) (0x0C); //name  & 0x00FF
+			Querypacket[i*lenanswer + j] = (byte) (0xC0); //name  & 0xFF00
+			Querypacket[i*lenanswer + j + 1] = (byte) (0x0C); //name  & 0x00FF
 			
-			Querypacket[i*lenanswer + index + 7] = (byte) (0x00); //type  & 0xFF00
-			Querypacket[i*lenanswer + index + 8] = (byte) 0x01;	//type  & 0x00FF
+			Querypacket[i*lenanswer + j + 2] = (byte) (0x00); //type  & 0xFF00
+			Querypacket[i*lenanswer + j + 3] = (byte) 0x01;	//type  & 0x00FF
 			
 			
-			Querypacket[i*lenanswer + index + 9] = (byte) 0x00; //class  & 0xFF00
-			Querypacket[i*lenanswer + index + 10] = (byte) 0x01; //class & 0x00FF
+			Querypacket[i*lenanswer + j + 4] = (byte) 0x00; //class  & 0xFF00
+			Querypacket[i*lenanswer + j + 5] = (byte) 0x01; //class & 0x00FF
 			
 			//TTL
-			Querypacket[i*lenanswer + index + 11] = (byte) 0x00;
-			Querypacket[i*lenanswer + index + 12] = (byte) 0x01;
-			Querypacket[i*lenanswer + index + 13] = (byte)0x1a;
-			Querypacket[i*lenanswer + index + 14] = (byte) (0x6c);
+			Querypacket[i*lenanswer + j + 6] = (byte) 0x00;
+			Querypacket[i*lenanswer + j + 7] = (byte) 0x01;
+			Querypacket[i*lenanswer + j + 8] = (byte) 0x1a;
+			Querypacket[i*lenanswer + j + 9] = (byte) (0x6c);
 			
 			
 			//Grace a l'index de possion, nous somme en mesure
 			//de faire l'injection de l'adresse IP dans le packet
 			//et ce � la bonne endroit
-			Querypacket[i*lenanswer + index + 15] = (byte) (0x00); //RDLENGHT & 0xFF00
-			Querypacket[i*lenanswer + index + 16] = 0x04;//taille RDLENGHT 0x00FF
+			Querypacket[i*lenanswer + j + 10] = (byte) (0x00); //RDLENGHT & 0xFF00
+			Querypacket[i*lenanswer + j + 11] = 0x04;//taille RDLENGHT 0x00FF
 			
 			//Conversion de l'adresse IP de String en byte
 			String adrr = listadrr.get(i);
@@ -142,27 +143,28 @@ public class UDPAnswerPacketCreator {
 			part4 = (byte)(Integer.parseInt(adr[3]) & 0xff);
 			
 			//IP RDATA
-			Querypacket[i*lenanswer + index + 17] = (byte) (part1 & 0xff);
-			Querypacket[i*lenanswer + index + 18] = (byte) (part2 & 0xff);
-			Querypacket[i*lenanswer + index + 19] = (byte) (part3 & 0xff);
-			Querypacket[i*lenanswer + index + 20] = (byte) (part4 & 0xff);
+			Querypacket[i*lenanswer + j + 12] = (byte) (part1 & 0xff);
+			Querypacket[i*lenanswer + j + 13] = (byte) (part2 & 0xff);
+			Querypacket[i*lenanswer + j + 14] = (byte) (part3 & 0xff);
+			Querypacket[i*lenanswer + j + 15] = (byte) (part4 & 0xff);
+			j=0; //je sais c'est moche mais bon !
 		}
 		
-		longueur = (i+1)*lenanswer + index; 
+		longueur = i*(lenanswer) + index + 5; 
 		Answerpacket = new byte[this.longueur];
 		for(i = 0; i < Answerpacket.length; i++){ //remply le reste de merde
 			Answerpacket[i] = Querypacket[i];
 		}
 		
-		//System.out.println("Identifiant: 0x" + Integer.toHexString(Answerpacket[0] & 0xff) + Integer.toHexString(Answerpacket[1] & 0xff));
-		//System.out.println("parametre: 0x" + Integer.toHexString(Answerpacket[2] & 0xff) + Integer.toHexString(Answerpacket[3] & 0xff));
-		//System.out.println("question: 0x" + Integer.toHexString(Answerpacket[4] & 0xff) + Integer.toHexString(Answerpacket[5] & 0xff));
-		//System.out.println("reponse: 0x" + Integer.toHexString(Answerpacket[6] & 0xff) + Integer.toHexString(Answerpacket[7] & 0xff));
-		//System.out.println("autorite: 0x" + Integer.toHexString(Answerpacket[8] & 0xff) + Integer.toHexString(Answerpacket[9] & 0xff));
-		//System.out.println("info complementaire: 0x" + Integer.toHexString(Answerpacket[10] & 0xff) + Integer.toHexString(Answerpacket[11] & 0xff));
+		System.out.println("Identifiant: 0x" + Integer.toHexString(Answerpacket[0] & 0xff) + Integer.toHexString(Answerpacket[1] & 0xff));
+		System.out.println("parametre: 0x" + Integer.toHexString(Answerpacket[2] & 0xff) + Integer.toHexString(Answerpacket[3] & 0xff));
+		System.out.println("question: 0x" + Integer.toHexString(Answerpacket[4] & 0xff) + Integer.toHexString(Answerpacket[5] & 0xff));
+		System.out.println("reponse: 0x" + Integer.toHexString(Answerpacket[6] & 0xff) + Integer.toHexString(Answerpacket[7] & 0xff));
+		System.out.println("autorite: 0x" + Integer.toHexString(Answerpacket[8] & 0xff) + Integer.toHexString(Answerpacket[9] & 0xff));
+		System.out.println("info complementaire: 0x" + Integer.toHexString(Answerpacket[10] & 0xff) + Integer.toHexString(Answerpacket[11] & 0xff));
 		
-		/*
-		for(int i = 0;i < Answerpacket.length;i++){
+		
+		for(i = 0;i < Answerpacket.length;i++){
 			if(i%16 == 0){
 				System.out.println("\r");
 			}
@@ -170,7 +172,6 @@ public class UDPAnswerPacketCreator {
 		}
 		System.out.println("\r");
 		
-		*/
 		return Answerpacket;
 	}
 }

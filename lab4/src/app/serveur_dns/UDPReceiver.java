@@ -273,9 +273,9 @@ public class UDPReceiver extends Thread {
 							continue;
 						if(tmpip.compareToIgnoreCase(ipRDATA) != 0 ) //ajout seulement si le match host+ip non present
 							anRecorder.StartRecord(domaineToSearch, ipRDATA);
-						listAdrfound.add(ipRDATA);
-						
+						listAdrfound.add(ipRDATA);	
 					}// end for ANCOUNT
+					
 					// *Faire parvenir le paquet reponse au demandeur original,
 					// ayant emis une requete
 					// *avec cet identifiant

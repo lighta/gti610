@@ -74,6 +74,8 @@ import java.net.UnknownHostException;
 		//Envoi du packet � un serveur dns pour interrogation
 		if(SendSocket == null)
 			throw new IOException("Invalid Socket for send (null)");
+		if(packet == null)
+			throw new IOException("Invalid Packet for send (null)");
 		try {
 			//Cr�e le packet
 			packet.setAddress(addr);
