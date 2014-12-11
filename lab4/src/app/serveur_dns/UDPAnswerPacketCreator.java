@@ -2,26 +2,57 @@ package app.serveur_dns;
 
 import java.util.List;
 
-
+/**
+ * Class utilitaire pour creer un packet de reponse pour DNS en utilisant le protocol UDP.
+ * Cette classe s'occupe de formater les datas selon la specification du protocole.
+ * @author lighta, Simon
+ */
 public class UDPAnswerPacketCreator {
+	public class Answerpacket {
+		private int longueur; //taille du packet de reponse
+		private byte[] bytes; //packet de reponse
+	};
 	
-	int longueur;
-	byte[] Answerpacket;
+	Answerpacket answer_pkt; //peut etre etendu en liste
 	
-	public int getLongueur(){
-		return longueur;
+	/** 
+	 * Doit etre utiliser apres CreateAnswerPacket
+	 * @return le packet de reponse creer
+	 */
+	public Answerpacket getAnswrpacket(){
+		return answer_pkt;
 	}
+
 	
-	public byte[] getAnswrpacket(){
-		return Answerpacket;
-	}
-	
-	public UDPAnswerPacketCreator(){
+	/**
+	 * Constructeur de notre class utilitaire, peutetre utiliser
+	 * pour implementer differente strategy
+	 */
+	private UDPAnswerPacketCreator(){
 		
 	}
 	
+	/** Holder (thread safe) */
+	private static class SingletonHolder
+	{	
+		/** Instance unique non préinitialisée */
+		private final static UDPAnswerPacketCreator instance = new UDPAnswerPacketCreator();
+	}
+	 
+	/** Point d'accès pour l'instance unique du singleton */
+	public static UDPAnswerPacketCreator getInstance()
+	{
+		return SingletonHolder.instance;
+	}
+	
+	/**
+	 * 
+	 * @param Qpacket : Datagrame packet de la query DNS
+	 * @param listadrr : Adresse IP (v4) a transmettre comme reponse
+	 * @return tableau de bytes donnant un packet de reponse DNS
+	 */
 	public byte[] CreateAnswerPacket(byte[] Qpacket,List<String> listadrr){
-		
+		Answerpacket answer = new Answerpacket();
 		int ancount = listadrr.size();
 		if(ancount == 0){
 			System.out.println("No adresse to search exiting");
@@ -41,64 +72,57 @@ public class UDPAnswerPacketCreator {
 		
 		//copie les informations dans un tableau qui est utilise de buffer
 		//durant la modification du packet
-		byte[] Querypacket = new byte[1024];
-		for(int i = 0; i < Qpacket.length; i++){
-			Querypacket[i] = Qpacket[i];
-		}
+		byte[] tmp_packet = new byte[1024];
+		System.arraycopy(Qpacket, 0, tmp_packet, 0, Qpacket.length);
 		
-		//modification de l'identifiant
-		Querypacket[0] = (byte)Qpacket[0];
-		Querypacket[1] = (byte)Qpacket[1];
+		//copie de l'identifiant
+		tmp_packet[0] = (byte)Qpacket[0];
+		tmp_packet[1] = (byte)Qpacket[1];
 		
-		//modification des param�tres
-		//Active le champ reponse dans l'en-t�te
-		Querypacket[2] = (byte) 0x81; //QR+opcode+AA+TC+RD
-		Querypacket[3] = (byte) 0x80; //RA+Z+RCODE
-		Querypacket[4] = (byte) 0x00; //Qcount & 0xFF00
-		Querypacket[5] = (byte) 0x01; //Qcount & 0x00FF
+		//modification des parametres
+		//Active le champ reponse dans l'en-tete
+		tmp_packet[2] = (byte) 0x81; //QR+opcode+AA+TC+RD
+		tmp_packet[3] = (byte) 0x80; //RA+Z+RCODE
+		tmp_packet[4] = (byte) 0x00; //Qcount & 0xFF00
+		tmp_packet[5] = (byte) 0x01; //Qcount & 0x00FF
 		
-		Querypacket[6] = ((byte) ((ancount&(0xFF00)) >>8) ); //Ancount & 0xFF00
-		Querypacket[7] = (byte) ((ancount&(0x00FF)) ); //Ancount & 0x00FF
+		tmp_packet[6] = ((byte) ((ancount&(0xFF00)) >>8) ); //Ancount & 0xFF00
+		tmp_packet[7] = (byte) ((ancount&(0x00FF)) ); //Ancount & 0x00FF
 		
-		//Serveur authority --> 0 il n'y a pas de serveur d'autorit�
-		Querypacket[8] = (byte) 0x00; //NScount & 0xFF00
-		Querypacket[9] = (byte) 0x00; //NScount & 0x00FF
+		//Serveur authority --> 0 il n'y a pas de serveur d'autorite
+		tmp_packet[8] = (byte) 0x00; //NScount & 0xFF00
+		tmp_packet[9] = (byte) 0x00; //NScount & 0x00FF
 		
-		Querypacket[10] = (byte) 0x00; //ARCOUNT & 0xFF00
-		Querypacket[11] = (byte) 0x00; //NScount & 0x00FF
+		tmp_packet[10] = (byte) 0x00; //ARCOUNT & 0xFF00
+		tmp_packet[11] = (byte) 0x00; //NScount & 0x00FF
 
 		//Lecture de l'hostname
 		//ici comme on ne connait pas la grandeur que occupe le nom de domaine
-		//nous devons rechercher l'index pour pouvoir placer l'adresse IP � la bonne endroit
+		//nous devons rechercher l'index pour pouvoir placer l'adresse IP au bon endroit
 		//dans le packet
 		
-		int nbchar = Querypacket[12]; //lecture du arcount de base
 		String hostName = "";
-		int index = 13;
+		int index = 12, len;
 		
 		//lire qname
-		while(nbchar != 0){			
-			while(nbchar > 0) {
-				hostName = hostName + String.valueOf(Character.toChars(Querypacket[index]));
-			index++;
-			nbchar--;
+		while ((len = (int)tmp_packet[index]) != 0) {
+			//System.out.println("len=" + len);
+			for (int i = 1; i <= len; i++) {
+				hostName += (char)(tmp_packet[index+i]);
 			}
 			hostName = hostName + ".";
-			
-			nbchar = Querypacket[index];
-			index++;
+			index += len+1;
 		}
-		//System.out.println(hostName);       
-		index = index - 1; 
-    
+		//System.out.println("hostname found="+hostName);
+		//tmp_packet[index] = 0; //last idx is 0 and mark end of qname
 
 		//Identification de la class
 		//type
-		Querypacket[index + 1] = (byte)0x00; //Qtype  & 0xFF00
-		Querypacket[index + 2] = (byte)0x01; //Qtype  & 0x00FF
+		tmp_packet[index + 1] = (byte)0x00; //Qtype  & 0xFF00
+		tmp_packet[index + 2] = (byte)0x01; //Qtype  & 0x00FF
 		//class
-		Querypacket[index + 3] = (byte)0x00; //Qclass  & 0xFF00
-		Querypacket[index + 4] = (byte)0x01; //Qclass  & 0x00FF
+		tmp_packet[index + 3] = (byte)0x00; //Qclass  & 0xFF00
+		tmp_packet[index + 4] = (byte)0x01; //Qclass  & 0x00FF
 		
 		
 		//Champ reponse
@@ -106,72 +130,78 @@ public class UDPAnswerPacketCreator {
 		int j=index + 5;
 		for(i=0; i<ancount; i++){
 			//name offset !TODO whaaaat ?
-			Querypacket[i*lenanswer + j] = (byte) (0xC0); //name  & 0xFF00
-			Querypacket[i*lenanswer + j + 1] = (byte) (0x0C); //name  & 0x00FF
+			tmp_packet[j] = (byte) (0xC0); //name  & 0xFF00
+			tmp_packet[j + 1] = (byte) (0x0C); //name  & 0x00FF
 			
-			Querypacket[i*lenanswer + j + 2] = (byte) (0x00); //type  & 0xFF00
-			Querypacket[i*lenanswer + j + 3] = (byte) 0x01;	//type  & 0x00FF
+			tmp_packet[j + 2] = (byte) (0x00); //type  & 0xFF00
+			tmp_packet[j + 3] = (byte) 0x01;	//type  & 0x00FF
 			
 			
-			Querypacket[i*lenanswer + j + 4] = (byte) 0x00; //class  & 0xFF00
-			Querypacket[i*lenanswer + j + 5] = (byte) 0x01; //class & 0x00FF
+			tmp_packet[j + 4] = (byte) 0x00; //class  & 0xFF00
+			tmp_packet[j + 5] = (byte) 0x01; //class & 0x00FF
 			
 			//TTL
-			Querypacket[i*lenanswer + j + 6] = (byte) 0x00;
-			Querypacket[i*lenanswer + j + 7] = (byte) 0x01;
-			Querypacket[i*lenanswer + j + 8] = (byte) 0x1a;
-			Querypacket[i*lenanswer + j + 9] = (byte) (0x6c);
+			tmp_packet[j + 6] = (byte) 0x00;
+			tmp_packet[j + 7] = (byte) 0x01;
+			tmp_packet[j + 8] = (byte) 0x1a;
+			tmp_packet[j + 9] = (byte) (0x6c);
 			
 			
 			//Grace a l'index de possion, nous somme en mesure
 			//de faire l'injection de l'adresse IP dans le packet
-			//et ce � la bonne endroit
-			Querypacket[i*lenanswer + j + 10] = (byte) (0x00); //RDLENGHT & 0xFF00
-			Querypacket[i*lenanswer + j + 11] = 0x04;//taille RDLENGHT 0x00FF
+			//et ce au bon endroit
+			tmp_packet[j + 10] = (byte) (0x00); //RDLENGHT & 0xFF00
+			tmp_packet[j + 11] = (byte) 0x04;//taille RDLENGHT 0x00FF
 			
 			//Conversion de l'adresse IP de String en byte
 			String adrr = listadrr.get(i);
+			//System.out.println("Adr to transmit="+adrr);
 			adrr = adrr.replace("."," ");
 			String[] adr = adrr.split(" ");
-			byte part1 = 0;
-			byte part2 = 0;
-			byte part3 = 0;
-			byte part4 = 0;
-			part1 = (byte)(Integer.parseInt(adr[0]) & 0xff);
-			part2 = (byte)(Integer.parseInt(adr[1]) & 0xff);
-			part3 = (byte)(Integer.parseInt(adr[2]) & 0xff);
-			part4 = (byte)(Integer.parseInt(adr[3]) & 0xff);
+			byte part1 = (byte)(Integer.parseInt(adr[0]) & 0xff);
+			byte part2 = (byte)(Integer.parseInt(adr[1]) & 0xff);
+			byte part3 = (byte)(Integer.parseInt(adr[2]) & 0xff);
+			byte part4 = (byte)(Integer.parseInt(adr[3]) & 0xff);
 			
 			//IP RDATA
-			Querypacket[i*lenanswer + j + 12] = (byte) (part1 & 0xff);
-			Querypacket[i*lenanswer + j + 13] = (byte) (part2 & 0xff);
-			Querypacket[i*lenanswer + j + 14] = (byte) (part3 & 0xff);
-			Querypacket[i*lenanswer + j + 15] = (byte) (part4 & 0xff);
-			j=0; //je sais c'est moche mais bon !
+			tmp_packet[j + 12] = (byte) unsignedIP(part1);
+			tmp_packet[j + 13] = (byte) unsignedIP(part2);
+			tmp_packet[j + 14] = (byte) unsignedIP(part3);
+			tmp_packet[j + 15] = (byte) unsignedIP(part4);
+			j+=lenanswer;
 		}
 		
-		longueur = i*(lenanswer) + index + 5; 
-		Answerpacket = new byte[this.longueur];
-		for(i = 0; i < Answerpacket.length; i++){ //remply le reste de merde
-			Answerpacket[i] = Querypacket[i];
+		answer.longueur = j; 
+		answer.bytes = new byte[answer.longueur];
+		for(i = 0; i < answer.longueur; i++){ //remply le reste de merde
+			answer.bytes[i] = (byte) tmp_packet[i];
 		}
 		
-		System.out.println("Identifiant: 0x" + Integer.toHexString(Answerpacket[0] & 0xff) + Integer.toHexString(Answerpacket[1] & 0xff));
-		System.out.println("parametre: 0x" + Integer.toHexString(Answerpacket[2] & 0xff) + Integer.toHexString(Answerpacket[3] & 0xff));
-		System.out.println("question: 0x" + Integer.toHexString(Answerpacket[4] & 0xff) + Integer.toHexString(Answerpacket[5] & 0xff));
-		System.out.println("reponse: 0x" + Integer.toHexString(Answerpacket[6] & 0xff) + Integer.toHexString(Answerpacket[7] & 0xff));
-		System.out.println("autorite: 0x" + Integer.toHexString(Answerpacket[8] & 0xff) + Integer.toHexString(Answerpacket[9] & 0xff));
-		System.out.println("info complementaire: 0x" + Integer.toHexString(Answerpacket[10] & 0xff) + Integer.toHexString(Answerpacket[11] & 0xff));
+//		System.out.println("Identifiant: 0x" + Integer.toHexString(answer.bytes[0] & 0xff) + Integer.toHexString(answer.bytes[1] & 0xff));
+//		System.out.println("parametre: 0x" + Integer.toHexString(answer.bytes[2] & 0xff) + Integer.toHexString(answer.bytes[3] & 0xff));
+//		System.out.println("question: 0x" + Integer.toHexString(answer.bytes[4] & 0xff) + Integer.toHexString(answer.bytes[5] & 0xff));
+//		System.out.println("reponse: 0x" + Integer.toHexString(answer.bytes[6] & 0xff) + Integer.toHexString(answer.bytes[7] & 0xff));
+//		System.out.println("autorite: 0x" + Integer.toHexString(answer.bytes[8] & 0xff) + Integer.toHexString(answer.bytes[9] & 0xff));
+//		System.out.println("info complementaire: 0x" + Integer.toHexString(answer.bytes[10] & 0xff) + Integer.toHexString(answer.bytes[11] & 0xff));
 		
 		
-		for(i = 0;i < Answerpacket.length;i++){
-			if(i%16 == 0){
-				System.out.println("\r");
-			}
-			System.out.print(Integer.toHexString(Answerpacket[i] & 0xff).toString() + " ");
-		}
-		System.out.println("\r");
+//		for(i = 0;i < answer.longueur;i++){
+//			if(i%16 == 0){
+//				System.out.println("\r");
+//			}
+//			System.out.print(Integer.toHexString(answer.bytes[i] & 0xff).toString() + " ");
+//		}
+//		System.out.println("\r");
 		
-		return Answerpacket;
+		return answer.bytes;
+	}
+	
+	int unsignedIP(int data){
+		int tmp=0;
+		if( (data&(0x80))==(0x80) )
+			tmp=(data&(0x7F))+128;
+		else
+			tmp=data;
+		return tmp;
 	}
 }

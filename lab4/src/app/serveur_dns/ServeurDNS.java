@@ -15,8 +15,8 @@ public class ServeurDNS {
 		
 		System.out.println("--------------------------------------");
 		System.out.println("Ecole de Technologie Superieures (ETS)");
-		System.out.println("GTI610 - R�seau de t�l�communication");
-		System.out.println("      Serveur DNS simplifi� testttttt");
+		System.out.println("GTI610 - Reseau de telecommunication");
+		System.out.println("      Serveur DNS simplifie");
 		System.out.println("--------------------------------------");
 		
 		if (args.length == 0) {

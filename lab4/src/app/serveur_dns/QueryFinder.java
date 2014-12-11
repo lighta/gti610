@@ -7,30 +7,32 @@ package app.serveur_dns;
  Session :           Hiver 2007
  Groupe :            01
  Projet :            Laboratoire #3
- Étudiant(e)(s) :    Maxime Bouchard
+ Etudiant(e)(s) :    Maxime Bouchard
  Code(s) perm. :     BOUM24028309
  
  Professeur :        Michel Lavoie 
  Nom du fichier :    QueryFinder.java
- Date crée :         2007-03-10
+ Date cree :         2007-03-10
  Date dern. modif.   X
  *******************************************************/
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 /**
- * Cette classe est utilisé pour la recherche d'un hostname
+ * Cette classe est utilise pour la recherche d'un hostname
  * dans le fichier contenant l'information de celui-ci.
- * Si le hostname existe, l'adresse IP est retrouné, sinon
- * l'absence de cette adresse est signalé
+ * Si le hostname existe, l'adresse IP est retroune, sinon
+ * l'absence de cette adresse est signale
  * @author Max
- *
  */
 	public class QueryFinder  {
 	
-	private String adresse = null;
-	private String filename = null;
+	private String adresse = null; //hostname de l'adresse a chercher
+	private String filename = null; //fichier ou effectuer la recherche
+	
 	private Scanner scanneurFichierSource = null;
 	private String uneligne = null;
 	private String[] hostnameFromFile = null;
@@ -62,9 +64,8 @@ import java.util.Scanner;
 	 * Search un hostname et retourne une ip
 	 * @param hostname = adresse dns a chercher
 	 */
-	public String StartResearch(String hostname){
-		
-		this.adresse = hostname;
+	public List<String> StartResearch(String hostname){
+		List<String> adresslist = new ArrayList<>();
 		
 		try {
 			scanneurFichierSource = new Scanner(new FileReader(filename));
@@ -74,35 +75,34 @@ import java.util.Scanner;
 		}
 		
 		//Test pour savoir si le fichier est vide
-		//S'il n'y a pas de ligne après le début du fichier (quand le curseur est avant le
-		//début du fichier), le fichier est vide
+		//S'il n'y a pas de ligne aprï¿½s le dï¿½but du fichier (quand le curseur est avant le
+		//dï¿½but du fichier), le fichier est vide
 		
 		if(!scanneurFichierSource.hasNextLine()){
 			System.out.println("Le fichier DNS est vide");
-			return "none";
+			scanneurFichierSource.close();
+			return adresslist;
 		}
 		
 		//prend une ligne
 		uneligne = scanneurFichierSource.nextLine();
 		hostnameFromFile = uneligne.split(" ");
 		
-		while(!(hostnameFromFile[0].equals(this.adresse)) && (scanneurFichierSource.hasNextLine())){
+		while( scanneurFichierSource.hasNextLine() ){
 			uneligne = scanneurFichierSource.nextLine();
 			hostnameFromFile = uneligne.split(" ");
-		}
-		
-		if(hostnameFromFile[0].equals(this.adresse)){
-			this.valueToReturn = hostnameFromFile[1];
-		}
-		else{
-			this.valueToReturn = "none";
+			if(hostnameFromFile[0].equals(hostname)){
+				adresslist.add(hostnameFromFile[1]);
+			}
 		}
 		scanneurFichierSource.close();
-		return this.valueToReturn;
+		return adresslist;
 	}
 	
-	public void listCorrespondingTable(){
-		
+	/**
+	 * Affiche l'ensemble du contenu du DNSFILE
+	 */
+	public void listCorrespondingTable(){	
 		try {
 			scanneurFichierSource = new Scanner(new FileReader(filename));
 		} catch (FileNotFoundException e) {

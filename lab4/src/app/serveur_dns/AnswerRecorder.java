@@ -3,18 +3,14 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 /***
- * Cette classe est utilis� pour enregistrer une r�ponse
+ * Cette classe est utilise pour enregistrer une reponse
  * dans le fichier texte en provenance d'un Server DNS autre.
- * @author Max
- *
- */
-
-/**
- * @author aj98150
- *
+ * @author Max (aj98150)
+ * Nettoyer pour eviter les erreurs de manipulation
+ * @author lighta, Simon
  */
 public class AnswerRecorder {
-	private String filename = null;
+	private String filename = null; //path du fichier a utiliser
 
 	/**
 	 * Construteur
@@ -23,10 +19,9 @@ public class AnswerRecorder {
 	 */
 	public AnswerRecorder(String filename){
 		this.filename = filename;
+		//TODO devrait check si on a le droit d'ecriture / lecture dans ce filename
 	}
-	
-	
-	
+		
 	/**
 	 * @return file name
 	 */
@@ -35,17 +30,16 @@ public class AnswerRecorder {
 	}
 
 	/**
-	 * @param hostname
-	 * @param adresseIP
+	 * @param hostname : NS (ex google.com)
+	 * @param adresseIP : Ip resolvant le NS
 	 */
 	public void StartRecord(String hostname,String adresseIP){
-		if(adresseIP.length() < 7) {
+		if(adresseIP.length() < 7) { //@TODO add proper regex
 			System.out.println("Invalid adresseIP to write ("+adresseIP+")");
-			return; //@TODO add proper regex	
+			return; 	
 		}
 		try {
-			FileWriter writerFichierSource = new FileWriter(filename,true);
-			
+			FileWriter writerFichierSource = new FileWriter(filename,true);		
 			writerFichierSource.write(hostname + " " + adresseIP);
 			writerFichierSource.write("\r\n");
 			writerFichierSource.close();

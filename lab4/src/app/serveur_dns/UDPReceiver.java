@@ -15,11 +15,11 @@ import app.serveur_dns.message_dns.QuestionDNS;
 import app.serveur_dns.message_dns.ReponseDNS;
 
 /**
- * Cette classe permet la r�ception d'un paquet UDP sur le port de r�ception
+ * Cette classe permet la reception d'un paquet UDP sur le port de reception
  * UDP/DNS. Elle analyse le paquet et extrait le hostname
  * 
- * Il s'agit d'un Thread qui �coute en permanance pour ne pas affecter le
- * d�roulement du programme
+ * Il s'agit d'un Thread qui ecoute en permanance pour ne pas affecter le
+ * deroulement du programme
  * 
  * @author Max
  *
@@ -27,17 +27,17 @@ import app.serveur_dns.message_dns.ReponseDNS;
 
 public class UDPReceiver extends Thread {
 	/**
-	 * Les champs d'un Packet UDP -------------------------- En-t�te (12
-	 * octects) Question : l'adresse demand� R�ponse : l'adresse IP Autorit� :
-	 * info sur le serveur d'autorit� Additionnel : information suppl�mentaire
+	 * Les champs d'un Packet UDP -------------------------- En-tete (12
+	 * octects) Question : l'adresse demande Reponse : l'adresse IP Autorite :
+	 * info sur le serveur d'autorite Additionnel : information supplementaire
 	 */
 
 	/**
-	 * D�finition de l'En-t�te d'un Packet UDP
-	 * --------------------------------------- Identifiant Param�tres QDcount
+	 * Definition de l'En-tete d'un Packet UDP
+	 * --------------------------------------- Identifiant Parametres QDcount
 	 * Ancount NScount ARcount
 	 * 
-	 * � identifiant est un entier permettant d�identifier la requete. �
+	 * L'identifiant est un entier permettant d'identifier la requete. �
 	 * parametres contient les champs suivant : � QR (1 bit) : indique si le
 	 * message est une question (0) ou une reponse (1). � OPCODE (4 bits) : type
 	 * de la requete (0000 pour une requete simple). � AA (1 bit) : le serveur
@@ -175,11 +175,10 @@ public class UDPReceiver extends Thread {
 						// dans le fichier de correspondance de ce serveur					
 						String domaineToSearch = question.getFlatQname();
 						System.out.println("domaineToSearch="+domaineToSearch);
-						ArrayList<String> listAdrfound = new ArrayList<>();
-						String ipFound = qf.StartResearch(domaineToSearch);
+						List<String> listAdrfound = qf.StartResearch(domaineToSearch);
 						
 						// *Si la correspondance n'est pas trouvee
-						if(ipFound.equalsIgnoreCase("none"))
+						if(listAdrfound.isEmpty())
 						{
 							System.out.println("Adresse not found transfering to ip="+this.SERVER_DNS+" port="+this.portRedirect);
 							// *Rediriger le paquet vers le serveur DNS
@@ -190,11 +189,10 @@ public class UDPReceiver extends Thread {
 							// *Sinon	
 							// *Creer le paquet de reponse a l'aide du
 							// UDPAnswerPaquetCreator
-							listAdrfound.add(ipFound);
 							System.out.println("Adresse found replying to ip="+cl.client_ip+" port="+cl.client_port);
-							UDPAnswerPacketCreator answer = new UDPAnswerPacketCreator();
+							UDPAnswerPacketCreator answer_creator = UDPAnswerPacketCreator.getInstance();
 							// *Placer ce paquet dans le socket
-							byte[] awnserbyte  = answer.CreateAnswerPacket(buff,listAdrfound);
+							byte[] awnserbyte  = answer_creator.CreateAnswerPacket(buff,listAdrfound);
 							DatagramPacket pktreply = new DatagramPacket(awnserbyte,awnserbyte.length);
 							// *Envoyer le paquet
 							UDPSender UDPOut = new UDPSender(cl.client_ip,cl.client_port,serveur);
@@ -204,6 +202,7 @@ public class UDPReceiver extends Thread {
 				} 
 				else { // if(message.isResponse())
 					int id = header.getID();
+					String searchip = null;
 					System.out.println("\n\n\npacket is a awnser ID = "+id);
 					//1st we need a client to anwser to, so let check if we have that in our map
 					ClientInfo cl = Clients.get(id);
@@ -218,6 +217,7 @@ public class UDPReceiver extends Thread {
 					if(message.isQuery()){ //has a query in it
 						QuestionDNS question = message.getQuestion();
 						readQuestion(question,input);
+						searchip = question.getFlatQname();
 					}
 					
 					int i;
@@ -259,6 +259,8 @@ public class UDPReceiver extends Thread {
 					} //finish reading packet
 					
 					ArrayList<String> listAdrfound = new ArrayList<>();
+					List<String> tmpip =  qf.StartResearch(searchip);
+					
 					//recherche et enregistrement des IP trouver
 					for(i = 0; i<header.getANCOUNT();i++){
 						ReponseDNS reponse = message.getReponse().get(i);
@@ -267,26 +269,28 @@ public class UDPReceiver extends Thread {
 						String domaineToSearch = reponse.getFlatName(); // *Sauvegarde du Query Domain name
 						if(domaineToSearch == null)
 							continue;		
-						String tmpip =  qf.StartResearch(domaineToSearch);
+						
 						String ipRDATA = reponse.getFlatIP();
 						if(ipRDATA == null)
 							continue;
-						if(tmpip.compareToIgnoreCase(ipRDATA) != 0 ) //ajout seulement si le match host+ip non present
+						if( !tmpip.contains(ipRDATA) ) //ajout seulement si le match host+ip non present
 							anRecorder.StartRecord(domaineToSearch, ipRDATA);
 						listAdrfound.add(ipRDATA);	
 					}// end for ANCOUNT
 					
-					// *Faire parvenir le paquet reponse au demandeur original,
-					// ayant emis une requete
-					// *avec cet identifiant
-					UDPAnswerPacketCreator answer = new UDPAnswerPacketCreator();
-					// *Placer ce paquet dans le socket
-					byte[] awnserbyte  = answer.CreateAnswerPacket(buff,listAdrfound);
-					DatagramPacket pktreply = new DatagramPacket(awnserbyte,awnserbyte.length);
-					
-					// *Envoyer le paquet
-					UDPSender UDPOut = new UDPSender(cl.client_ip,cl.client_port,serveur);
-					UDPOut.SendPacketNow(pktreply);
+					if(listAdrfound.isEmpty() == false){
+						// *Faire parvenir le paquet reponse au demandeur original,
+						// ayant emis une requete
+						// *avec cet identifiant
+						UDPAnswerPacketCreator answer_creator = UDPAnswerPacketCreator.getInstance();
+						// *Placer ce paquet dans le socket
+						byte[] awnserbyte  = answer_creator.CreateAnswerPacket(buff,listAdrfound);
+						DatagramPacket pktreply = new DatagramPacket(awnserbyte,awnserbyte.length);
+						
+						// *Envoyer le paquet
+						UDPSender UDPOut = new UDPSender(cl.client_ip,cl.client_port,serveur);
+						UDPOut.SendPacketNow(pktreply);
+					} //si aucune reponse trouve ne pasrepondre
 				}// end else isReponse
 			}// end while server
 			
